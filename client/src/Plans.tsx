@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Check, Copy, X } from 'lucide-react';
+import { apiUrl } from './api';
 
 type PlanKey = 'basic' | 'starter' | 'pro' | 'premium';
 type Plan = {
@@ -24,7 +25,6 @@ type PaymentAttempt = {
 type Props = { token: string; email: string; onLogin: () => void };
 type Client = { name: string; email: string; phone: string; document: string };
 
-const api = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 const storageKey = (email: string) => `webforge:pending-payment:${email.toLowerCase()}`;
 const pendingStates = new Set(['creating', 'pending']);
 const terminalStates = new Set(['paid', 'failed', 'expired', 'canceled']);
@@ -57,8 +57,15 @@ export default function Plans({ token, email, onLogin }: Props) {
   const notifiedPayment = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(''), 9000);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
+  useEffect(() => {
     let mounted = true;
-    fetch(`${api}/api/plans`)
+    Promise.resolve()
+      .then(() => fetch(apiUrl('/api/plans')))
       .then(async response => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || `Erro HTTP ${response.status}`);
@@ -88,7 +95,7 @@ export default function Plans({ token, email, onLogin }: Props) {
     if (!savedPlan) return;
 
     let mounted = true;
-    fetch(`${api}/api/plans/${saved.planKey}/subscription/pix`, {
+    Promise.resolve().then(() => fetch(apiUrl(`/api/plans/${saved.planKey}/subscription/pix`), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Idempotency-Key': saved.key },
     })
@@ -96,7 +103,7 @@ export default function Plans({ token, email, onLogin }: Props) {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || `Erro HTTP ${response.status}`);
         return data as PaymentAttempt;
-      })
+      }))
       .then(attempt => {
         if (!mounted) return;
         setPlan(savedPlan);
@@ -121,7 +128,7 @@ export default function Plans({ token, email, onLogin }: Props) {
     let mounted = true;
     const refresh = async () => {
       try {
-        const response = await fetch(`${api}/api/billing/payment-attempts/${charge.id}`, {
+        const response = await fetch(apiUrl(`/api/billing/payment-attempts/${charge.id}`), {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json().catch(() => ({}));
@@ -172,7 +179,7 @@ export default function Plans({ token, email, onLogin }: Props) {
     setMessage('');
     localStorage.setItem(storageKey(email), JSON.stringify({ key: idempotencyKey, planKey: plan.key }));
     try {
-      const response = await fetch(`${api}/api/plans/${plan.key}/subscription/pix`, {
+      const response = await fetch(apiUrl(`/api/plans/${plan.key}/subscription/pix`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -220,6 +227,7 @@ export default function Plans({ token, email, onLogin }: Props) {
     <section className="max-w-5xl mx-auto px-5 py-16 text-center">
       <h2 className="text-3xl font-bold mb-3">Planos</h2>
       <p className="muted mb-8">Assinatura recorrente via Pix, com ciclos de acordo com o plano.</p>
+      {message && !plan && <div role="alert" className="text-amber-300 text-sm mb-6 flex items-start justify-between gap-3"><p>{message}</p><button type="button" aria-label="Fechar aviso" onClick={() => setMessage('')}><X size={16}/></button></div>}
       {loadingPlans ? <p className="muted">Carregando planos...</p> : <div className="grid md:grid-cols-3 gap-4">
         <div className="panel p-8">
           <h3 className="text-2xl font-bold">Gratuito</h3>
@@ -262,7 +270,7 @@ export default function Plans({ token, email, onLogin }: Props) {
           <label className="block">CPF (opcional)
             <input className="field mt-2" inputMode="numeric" autoComplete="off" value={client.document} onChange={event => setClient({ ...client, document: event.target.value })}/>
           </label>
-          {message && <p role="alert" className="text-amber-300 text-sm">{message}</p>}
+          {message && <div role="alert" className="text-amber-300 text-sm flex items-start justify-between gap-3"><p>{message}</p><button type="button" aria-label="Fechar aviso" onClick={() => setMessage('')}><X size={16}/></button></div>}
           <button className="btn w-full" disabled={busy}>{busy ? 'Solicitando ao gateway...' : 'Continuar para o Pix'}</button>
           <p className="muted text-xs">A assinatura e os créditos só serão ativados após confirmação autenticada do pagamento.</p>
         </form> : <div className="mt-6 text-center">
@@ -278,7 +286,7 @@ export default function Plans({ token, email, onLogin }: Props) {
           {charge.status === 'paid' && <p className="text-emerald-300 text-sm mt-4"><Check size={16} className="inline mr-1"/>Pagamento confirmado; os créditos foram atualizados.</p>}
           {pendingStates.has(charge.status) && <p className="muted text-xs mt-4">O status é atualizado após a confirmação do gateway. Não gere outra cobrança enquanto esta estiver pendente.</p>}
           {terminalStates.has(charge.status) && charge.status !== 'paid' && <button className="btn mt-4 w-full" onClick={() => choosePlan(plan)}>Iniciar nova tentativa</button>}
-          {message && <p role="status" className="text-amber-300 text-sm mt-3">{message}</p>}
+          {message && <div role="status" className="text-amber-300 text-sm mt-3 flex items-start justify-between gap-3"><p>{message}</p><button type="button" aria-label="Fechar aviso" onClick={() => setMessage('')}><X size={16}/></button></div>}
         </div>}
       </section>
     </div>}

@@ -13,10 +13,14 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
-      - key: OPENROUTER_API_KEY
+      - key: MANDAPI_API_KEY
         sync: false
-      - key: OPENROUTER_MODEL
+      - key: MANDAPI_MODEL
         sync: false
+      - key: MANDAPI_TIMEOUT_MS
+        value: 180000
+      - key: MANDAPI_MAX_TOKENS
+        value: 8500
       - key: CLIENT_ORIGIN
         sync: false
       - key: POSEIDON_PUBLIC_KEY

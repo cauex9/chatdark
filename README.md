@@ -8,7 +8,7 @@ Plataforma SaaS de criação de sites com IA, baseada no prompt fornecido. **Có
 - Supabase Auth: cadastro, login, logout e solicitação de recuperação de senha.
 - Dashboard com projetos reais do banco, renomear, excluir e acesso ao editor.
 - Criação de projeto (limite gratuito de um projeto), persistência no Supabase.
-- Backend autenticado que solicita geração de arquivos React/TypeScript via OpenRouter.
+- Backend autenticado que solicita geração de arquivos React/TypeScript via MandAPI.
 - Editor Monaco, salvamento de arquivos, histórico de versões e restauração.
 - Preview **estático e restrito**, sem executar JavaScript da IA.
 - Exportação ZIP dos arquivos gerados.
@@ -18,7 +18,7 @@ Plataforma SaaS de criação de sites com IA, baseada no prompt fornecido. **Có
 
 1. Em um projeto novo, execute `supabase/migrations/001_init.sql`. Para o banco existente com `public.plans` e `public.subscriptions`, não recrie essas tabelas; revise e aplique `supabase/migrations/003_poseidonpay_billing.sql` antes de habilitar o checkout. A migration antiga `002_billing_subscriptions.sql` não é usada pelo fluxo novo.
 2. Copie `client/.env.example` para `client/.env` e `server/.env.example` para `server/.env`.
-3. Configure URL e **chave publishable** do Supabase no cliente. Configure URL e **chave secret** somente no servidor. Configure `OPENROUTER_API_KEY` e `OPENROUTER_MODEL` no servidor. Para receber Pix, configure `POSEIDON_PUBLIC_KEY`, `POSEIDON_SECRET_KEY`, `POSEIDON_WEBHOOK_SECRET` e `POSEIDON_WEBHOOK_URL` somente no servidor, conforme [INTEGRACAO_ASSINATURAS.md](./INTEGRACAO_ASSINATURAS.md).
+3. Configure URL e **chave publishable** do Supabase no cliente. Configure URL e **chave secret** somente no servidor. Configure `MANDAPI_API_KEY` e `MANDAPI_MODEL` no servidor. Para receber Pix, configure `POSEIDON_PUBLIC_KEY`, `POSEIDON_SECRET_KEY`, `POSEIDON_WEBHOOK_SECRET` e `POSEIDON_WEBHOOK_URL` somente no servidor, conforme [INTEGRACAO_ASSINATURAS.md](./INTEGRACAO_ASSINATURAS.md).
 4. Na pasta raiz execute:
 
 ```powershell
@@ -32,16 +32,16 @@ npm run dev
 
 ## Deploy
 
-- **Netlify:** conectar repositório; `netlify.toml` usa `client` como base, `npm run build`, publicação `dist`. Configurar `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_API_URL` (URL do Render). Variáveis VITE são públicas; nunca use a chave secreta.
-- **Render:** `render.yaml` incluído. Configurar variáveis listadas em `server/.env.example`, `CLIENT_ORIGIN=https://SEU-SITE.netlify.app`. Serviço Node. Planos gratuitos podem mudar e suspender por inatividade.
+- **Netlify:** conectar repositório; `netlify.toml` usa `client` como base, `npm run build`, publicação `dist`. Configurar `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` e `VITE_API_URL` (URL HTTPS pública do Render). Sem essa variável o cliente não tentará chamar `localhost` em produção. Variáveis VITE são públicas; nunca use a chave secreta.
+- **Render:** `render.yaml` incluído. Configure as variáveis listadas em `server/.env.example` (incluindo `MANDAPI_API_KEY` e `MANDAPI_MODEL`) e `CLIENT_ORIGIN=https://SEU-SITE.netlify.app`. Serviço Node. Planos gratuitos podem mudar e suspender por inatividade.
 - **Supabase:** banco/Auth externo com cotas gratuitas sujeitas a mudanças.
-- **OpenRouter:** requer conta, chave e modelo válido configurado. Modelos gratuitos podem ter limites e indisponibilidade. O uso pode ter custo.
+- **MandAPI:** requer conta, chave e modelo válido configurado. Confira limites, disponibilidade e custos com o provedor.
 
 ## Limitações importantes
 
 - Preview estático (`preview.html`) isolado em iframe sandbox sem scripts. **Não executa o app React gerado**. Para preview React real é necessário um serviço de build/sandbox isolado por projeto com recursos e rede restritos; não habilite execução arbitrária no servidor principal.
 - Os arquivos React gerados pela IA são validados quanto a nomes/tamanho, mas **não são compilados nem auditados automaticamente**. Confira antes de publicar.
-- Pix: o backend usa os registros ativos de `public.plans`, cria assinaturas Pix recorrentes na PoseidonPay, apresenta QR Code/copia-e-cola e processa webhooks somente após reconciliar o pagamento pela API autenticada. Créditos de 30 (Básico) ou 60 (PRO) são concedidos uma vez por transação/ciclo confirmado. A migration ainda precisa ser aplicada e o webhook exercitado no ambiente do provedor; não habilite cobrança de produção antes disso. Veja [INTEGRACAO_ASSINATURAS.md](./INTEGRACAO_ASSINATURAS.md).
+- Pix: o backend usa os registros ativos de `public.plans` como fonte de preço e créditos: Starter (R$ 7,90/10 créditos), Pro (R$ 14,90/25) e Premium (R$ 24,90/50), com ciclos de 30 dias. Cria assinaturas Pix recorrentes na PoseidonPay, apresenta QR Code/copia-e-cola e processa webhooks somente após reconciliar o pagamento pela API autenticada. Os créditos são concedidos uma vez por transação/ciclo confirmado. A migration ainda precisa ser aplicada e o webhook exercitado no ambiente do provedor; não habilite cobrança de produção antes disso. Veja [INTEGRACAO_ASSINATURAS.md](./INTEGRACAO_ASSINATURAS.md).
 - Recuperação de senha envia e-mail pelo Supabase, mas ainda falta página de redefinição no cliente.
 - Exportação ZIP inclui arquivos gerados; execute código exportado somente após revisão.
 - Geração IA não tem fila durável e não há proteção completa contra falhas parciais de gravação de arquivos.
@@ -49,7 +49,7 @@ npm run dev
 
 ## Segurança
 
-- Nunca coloque `sb_secret_` nem `OPENROUTER_API_KEY` em `client/.env`, GitHub ou Netlify.
+- Nunca coloque `sb_secret_` nem `MANDAPI_API_KEY` em `client/.env`, GitHub ou Netlify.
 - Se você já divulgou uma chave secreta, **revogue-a no Supabase e gere outra**.
 - Backend valida token Supabase; dados privados usam RLS no banco e serviço backend com autorização.
 - Não use o projeto como plataforma de execução de código não confiável em produção sem infraestrutura de sandbox.
@@ -58,6 +58,6 @@ npm run dev
 
 - Identidade visual grafite/verde-lima com logo fornecida em `client/public/webforge-logo.jpg`.
 - Nova página inicial responsiva, ajustes de botões, formulários e cards; editor com indicador de espera.
-- O backend aceita `OPENROUTER_TIMEOUT_MS` (padrão 90000 ms) e `OPENROUTER_MAX_TOKENS` (padrão 6500). O contexto de arquivos existentes foi reduzido para diminuir o tamanho da requisição. Se o modelo retornar JSON incompleto, aumente o limite de tokens.
-- A velocidade efetiva depende do modelo configurado em `OPENROUTER_MODEL` e do provedor. Não há streaming nesta versão.
+- O backend aceita `MANDAPI_TIMEOUT_MS` (padrão 180000 ms) e `MANDAPI_MAX_TOKENS` (padrão 8500). O contexto de arquivos existentes foi reduzido para diminuir o tamanho da requisição. Se o modelo retornar JSON incompleto, aumente o limite de tokens.
+- A velocidade efetiva depende do modelo configurado em `MANDAPI_MODEL` e do provedor. Não há streaming nesta versão.
 - Esta atualização não aplica migrations nem configura credenciais. Teste a integração Pix em ambiente de testes antes de produção.
