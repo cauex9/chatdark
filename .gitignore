@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+!.env.*.example
+client/dist/
+server/dist/

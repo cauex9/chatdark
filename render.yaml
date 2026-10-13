@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: webforge-api
+    env: node
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: POSEIDON_PUBLIC_KEY
+        sync: false
+      - key: POSEIDON_SECRET_KEY
+        sync: false
+      - key: POSEIDON_WEBHOOK_SECRET
+        sync: false
+      - key: POSEIDON_WEBHOOK_URL
+        sync: false

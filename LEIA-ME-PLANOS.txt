@@ -1,0 +1,11 @@
+WebForge AI - correções de planos
+
+- Starter, Pro e Premium reconhecidos na API e no frontend.
+- Botão Ver planos no cabeçalho e tela dedicada.
+- Quando os créditos chegam a zero, o editor oferece Assinar plano com Pix.
+- Prompt com menos de 10 caracteres não é enviado.
+
+ATENÇÃO: pagamentos reais exigem POSEIDON_WEBHOOK_URL e POSEIDON_WEBHOOK_SECRET no backend público HTTPS.
+Os arquivos .env não estão incluídos. Preserve as variáveis da sua instalação.
+
+Instalação: extraia o ZIP numa pasta nova, copie suas variáveis locais, rode npm install, npm install --prefix client, npm install --prefix server, npm run dev.
